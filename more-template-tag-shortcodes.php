@@ -3,9 +3,9 @@
  * Plugin Name: More Template Tag Shortcodes
  * Plugin URI: 
  * Description: Adds even more simple shortcode that can be used in posts and pages 
- * Version: 0.1.1
+ * Version: 1
  * Author: CTLT UBC
- * Author URI: http://justintadlock.com
+ * Author URI: http://ctlt.ubc.ca
  * License: GPL2 or later
  *
  *
@@ -397,7 +397,7 @@
 			$end =  "&w=".$width."&h=".$height.$end;
 		endif;
 		
-		if($post->type != 'feed_item'):
+		if(!isset( $post->is_loop_shortcode_feed ) ):
 			$attachment_id = get_post_thumbnail_id(NULL); // gives you the current id
 			
 			$image = wp_get_attachment_image_src( $attachment_id, $size, false );
@@ -429,7 +429,7 @@
 		else: 
 			// the conten is comming from a feed
 			
-			if($enclosure = $post->post_content_filtered->get_enclosure()):
+			if( $enclosure = $post->post_content_filtered->get_enclosure()):
 				if(isset($timthumb) && isset($blog_id)) {
 					$src = $enclosure->link;
 					
@@ -471,15 +471,58 @@
 	 */
 	function comments_shortcode($atts)
 	{	
+		global $post;
 		extract(shortcode_atts(array(
 			'no_comments' => false,
 			'one_comment' => false,
 			'numer_of_comments' =>false
 		), $atts));
-		ob_start(); ?>
-		<a href="<?php echo get_comments_link(); ?>"><?php comments_number($no_comments,$one_comment,$numer_of_comments); ?></a>
-		<?php 
-		return ob_get_clean();
+		
+		if( !isset($post->is_loop_shortcode_feed) ):
+			ob_start(); ?>
+			<a href="<?php echo get_comments_link(); ?>" title="<?php comments_number($no_comments,$one_comment,$numer_of_comments); ?>" ><?php comments_number($no_comments,$one_comment,$numer_of_comments); ?></a>
+			<?php 
+			return ob_get_clean();
+		else:
+			
+		$number = $this->get_feed_comments_number();
+	
+		if ( $number > 1 )
+			$output = str_replace('%', number_format_i18n($number), ( false === $more ) ? __('% Comments') : $more);
+		elseif ( $number === 0 )
+			$output = ( false === $no_comments ) ? __('No Comments') : $no_comments;
+        elseif($number == 1 ) // must be one
+            $output = ( false === $one_comment ) ? __('1 Comment') : $one_comment;
+        else
+        	return "";
+		endif;
+		
+		return '<a href="'.$this->comments_link_shortcode().'" title="'.$output.'">'.$output.'</a>';
+	}
+	
+	/**
+	 * get_feed_comments_number function.
+	 * 
+	 * @access public
+	 * @return void
+	 */
+	function get_feed_comments_number(){
+		global $post;
+		
+		$link_data = $post->post_content_filtered->get_item_tags('http://purl.org/rss/1.0/modules/slash/','comments');
+		$comment_number = ( isset($link_data[0]['data']) ? $link_data[0]['data']: null );
+		
+		if( !is_null( $comment_number ) )
+			return (int)$comment_number;
+			
+		// try something else see if the feed is an atom feed
+		$link_data = $post->post_content_filtered->get_item_tags('http://purl.org/syndication/thread/1.0','total');
+		$comment_number = ( isset($link_data[0]['data']) ? $link_data[0]['data']: null );
+		
+		if( !is_null( $comment_number ) )
+			return (int)$comment_number;
+		
+		return null;
 	}
 	
 	/**
@@ -490,7 +533,35 @@
 	 */
 	function comments_link_shortcode()
 	{
-		return get_comments_link();
+		
+		
+		global $post;
+		
+		if( !isset($post->is_loop_shortcode_feed) ):
+			return get_comments_link();
+		else:
+			//  try to get the comments link
+			
+			
+			$link_data = $post->post_content_filtered->get_item_tags('','comments');
+			$link = ( isset($link_data[0]['data']) ? $link_data[0]['data']: null );
+			
+			if( $link ):
+				return $link;
+			else:
+				// I am guessing the feed is an atom feed
+				$link_data = $post->post_content_filtered->get_item_tags(SIMPLEPIE_NAMESPACE_ATOM_10,'link');
+				
+				foreach($link_data as $data):
+					if( 'text/html' == $data['attribs']['']['type'] && 'replies' == $data['attribs']['']['rel'] )
+					$link = $data['attribs']['']['href'];
+				endforeach;	
+				return $link;
+			endif;
+			return ;
+			
+		endif;
+		
 	}
 	
 	
@@ -503,11 +574,13 @@
 	 */
 	function post_categories_shortcode($attr)
 	{
-		if ( $attr['post_id'] )
+		if ( isset( $attr['post_id'] ) )
 			$attr['post_id'] = (int)$attr['post_id'];
-	
-		$separator = ( isset( $attr['separator'])? $attr['separator']: ", ");
-		return get_the_category_list( $separator, $attr['parents'] );
+		else
+			$attr['post_id']  = false;
+		$parents = ( in_array( $attr['parents'], array( 'multiple', 'single' ) ) ? $attr['parents'] : false );
+		$separator = ( isset( $attr['separator'] ) ? $attr['separator']: ", ");
+		return get_the_category_list( $separator, $parents, $attr['post_id'] );
 	}
 	
 	/**
@@ -518,8 +591,12 @@
 	 * @return void
 	 */
 	function post_tags_shortcode( $attr ) {
-		$separator = ( isset( $attr['separator'] ) ? $attr['separator']: ", ");
-		return get_the_tag_list( $attr['before'], $separator, $attr['after'] );
+		$separator = ( isset( $attr['separator'] ) ? $attr['separator'] : ", ");
+		
+		$before = ( isset( $attr['before'] ) ? $attr['before'] : '');
+		$after = ( isset( $attr['after'] ) ? $attr['after'] : '');
+		
+		return get_the_tag_list( $before, $separator, $after );
 	}
 	
 	/**
@@ -534,7 +611,10 @@
 	{
 		global $post;
 		$args = array( 'parent' => true,  'type'=>'revision');
-		return wp_list_post_revisions($post->ID, $args);
+		ob_start();
+		wp_list_post_revisions( $post->ID , $args );
+		
+		return ob_get_clean();
 	
 	}
 	/**
@@ -561,7 +641,8 @@
 	function childpages_shortcode( $depth=0 )
 	{
 		global $post;
-		
+		if($post->is_loop_shortcode_feed)
+			return "";
 		$args = array(
 	    'depth'        => $depth,
 	    'date_format'  => get_option('date_format'),
