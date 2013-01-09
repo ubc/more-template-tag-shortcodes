@@ -93,7 +93,7 @@
 	function has_shortcode( $shortcode ){
 		global $shortcode_tags;
 		/* don't do anything if the shortcode exists already */
-		return ( in_array( $shortcode, $shortcode_tags ) ? true : false );
+		return ( in_array( $shortcode, array_keys( $shortcode_tags ) ) ? true : false );
 	}
 	
 	/**
