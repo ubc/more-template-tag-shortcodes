@@ -267,8 +267,13 @@
 	 * @param mixed $attr
 	 * @return void
 	 */
-	function permalink_shortcode($attr)
+	function permalink_shortcode( $attr )
 	{	
+		global $post;
+		// to work nicely with ther loop shortcode
+		if( isset( $post->is_loop_shortcode_feed ) )
+			return $post->guid;
+			
 		$id = ( isset( $attr['id'] )? $attr['id']: null );
 		return get_permalink( $id );
 	}
