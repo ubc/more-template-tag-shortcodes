@@ -3,7 +3,7 @@
  * Plugin Name: More Template Tag Shortcodes
  * Plugin URI: 
  * Description: Adds even more simple shortcode that can be used in posts and pages 
- * Version: 1
+ * Version: 1.1
  * Author: CTLT UBC
  * Author URI: http://ctlt.ubc.ca
  * License: GPL2 or later
@@ -56,6 +56,8 @@
 	[the_post_thumbnail size=medium]
 	[the_post_thumbnail size= large]
 	[the_post_thumbnail size=full]
+	
+	[menu]
 	
  
 
@@ -149,6 +151,7 @@
 		$this->add_shortcode( 'the_excerpt', 'the_excerpt_shortcode');
 
 		$this->add_shortcode( 'child-pages', 'childpages_shortcode');
+		$this->add_shortcode( 'menu', 'menu_shortcode');
 	}
 	
 	
@@ -663,6 +666,46 @@
 			return "<div class='nav'><ul class='child-pages'>".$child_pages."</ul></div>";
 		else
 			return "";
+	}
+	
+	function menu_shortcode( $atts ) {
+		extract(shortcode_atts(array(  
+			'menu'            => '', 
+			'container'       => 'div', 
+			'container_class' => '', 
+			'container_id'    => '', 
+			'menu_class'      => 'menu', 
+			'menu_id'         => '',
+			'fallback_cb'     => 'wp_page_menu',
+			'before'          => '',
+			'after'           => '',
+			'link_before'     => '',
+			'link_after'      => '',
+			'depth'           => 0,
+			'walker'          => '',
+			'theme_location'  => ''), 
+			$atts));
+		
+		
+	$nav_arg = apply_filters( 'menu-shortcode-attributes', array( 
+		'menu'            => $menu, 
+		'container'       => $container, 
+		'container_class' => $container_class, 
+		'container_id'    => $container_id, 
+		'menu_class'      => $menu_class, 
+		'menu_id'         => $menu_id,
+		'echo'            => false,
+		'fallback_cb'     => $fallback_cb,
+		'before'          => $before,
+		'after'           => $after,
+		'link_before'     => $link_before,
+		'link_after'      => $link_after,
+		'depth'           => $depth,
+		'walker'          => $walker,
+		'theme_location'  => $theme_location ) ) ;
+		
+ 	return wp_nav_menu( $nav_arg );
+	
 	}
 	
 }
