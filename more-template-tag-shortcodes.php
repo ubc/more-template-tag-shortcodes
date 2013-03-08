@@ -711,3 +711,4 @@
 }
 
 new CTLT_More_Template_Tag_Shortcode();
+
