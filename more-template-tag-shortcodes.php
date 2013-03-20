@@ -703,6 +703,10 @@
 		'depth'           => $depth,
 		'walker'          => $walker,
 		'theme_location'  => $theme_location ) ) ;
+	
+		if( 'default' == $nav_arg['walker'] ):
+			unset( $nav_arg['walker'] );
+		endif;
 		
  	return wp_nav_menu( $nav_arg );
 	
