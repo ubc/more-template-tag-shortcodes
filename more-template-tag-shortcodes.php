@@ -163,6 +163,7 @@
 	 */
 	function get_plain_tags_shortcode() {
 	
+		$htmlstr = '';
 		$posttags = get_the_tags();
 		if ($posttags) {
 			foreach($posttags as $tag) {
@@ -244,7 +245,7 @@
 		return sprintf(
 			'<a href="%1$s" title="%2$s">%3$s</a>',
 			get_author_posts_url( $authordata->ID, $authordata->user_nicename ),
-			sprintf( __( 'Posts by %s' ), attribute_escape( get_the_author() ) ),
+			sprintf( __( 'Posts by %s' ), esc_attr( get_the_author() ) ),
 			get_the_author()
 		);
 		
@@ -586,7 +587,7 @@
 			$attr['post_id'] = (int)$attr['post_id'];
 		else
 			$attr['post_id']  = false;
-		$parents = ( in_array( $attr['parents'], array( 'multiple', 'single' ) ) ? $attr['parents'] : false );
+		$parents = ((isset($attr['parents']) && in_array( $attr['parents'], array( 'multiple', 'single' ) ) ) ? $attr['parents'] : false );
 		$separator = ( isset( $attr['separator'] ) ? $attr['separator']: ", ");
 		return get_the_category_list( $separator, $parents, $attr['post_id'] );
 	}
@@ -618,9 +619,8 @@
 	function post_revisions_shortcode()
 	{
 		global $post;
-		$args = array( 'parent' => true,  'type'=>'revision');
 		ob_start();
-		wp_list_post_revisions( $post->ID , $args );
+		wp_list_post_revisions( $post->ID , 'revision' );
 		
 		return ob_get_clean();
 	
@@ -651,17 +651,17 @@
 		global $post;
 		if($post->is_loop_shortcode_feed)
 			return "";
-		$args = array(
-	    'depth'        => $depth,
-	    'date_format'  => get_option('date_format'),
-	    'child_of'     => $post->ID,
-	 	'title_li'     => __(''),
-	    'echo'         => false,
-	    'sort_column'  => 'menu_order, post_title'
-	    );
+		
+		$args = shortcode_atts(array(
+			'depth'        => 0,
+			'date_format'  => get_option('date_format'),
+			'child_of'     => $post->ID,
+			'title_li'     => __(''),
+			'echo'         => false,
+			'sort_column'  => 'menu_order, post_title'
+		), $depth);
 	    
 	    $child_pages = wp_list_pages( $args );
-	    
 	    if($child_pages)
 			return "<div class='nav'><ul class='child-pages'>".$child_pages."</ul></div>";
 		else
