@@ -43,7 +43,7 @@
 	[last-updated]
 	[the_content]
 	[the_excerpt]
-	[the_footer]
+	[the_full_excerpt]
 
 	[child-pages]
 	[child-pages depth=1]
