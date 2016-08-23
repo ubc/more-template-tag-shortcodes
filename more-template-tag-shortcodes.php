@@ -43,7 +43,8 @@
 	[last-updated]
 	[the_content]
 	[the_excerpt]
-	
+	[the_full_excerpt]
+
 	[child-pages]
 	[child-pages depth=1]
 	
@@ -149,6 +150,7 @@
 
 		$this->add_shortcode( 'the_content', 'the_content_shortcode');
 		$this->add_shortcode( 'the_excerpt', 'the_excerpt_shortcode');
+		$this->add_shortcode( 'the_full_excerpt', 'the_full_excerpt_shortcode');
 
 		$this->add_shortcode( 'child-pages', 'childpages_shortcode');
 		$this->add_shortcode( 'menu', 'menu_shortcode');
@@ -229,6 +231,13 @@
 	function the_excerpt_shortcode()
 	{
 		return get_the_excerpt();
+	}
+
+	function the_full_excerpt_shortcode()
+	{ 
+		$excerpt = get_the_excerpt( $post_id );
+		$excerpt = apply_filters( 'the_excerpt', $excerpt );
+		return wp_kses_post( $excerpt );
 	}
 	
 	/**
